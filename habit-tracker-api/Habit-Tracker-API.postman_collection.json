@@ -1,0 +1,606 @@
+{
+  "info": {
+    "name": "Habit Tracker API",
+    "description": "Complete API collection for testing the Habit Tracker application with JWT authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "habitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "entryId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check if the application is running properly"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('status', 'UP');",
+              "});",
+              "",
+              "console.log('✅ Health check passed - Application is running!');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Register User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"testuser{{$randomInt}}\",\n    \"email\": \"test{{$randomInt}}@example.com\",\n    \"password\": \"testpassword123\",\n    \"firstName\": \"Test\",\n    \"lastName\": \"User\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Register a new user and get JWT token"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('token');",
+              "    pm.expect(jsonData.data).to.have.property('id');",
+              "    pm.expect(jsonData.data).to.have.property('username');",
+              "});",
+              "",
+              "// Save the auth token and user ID for use in other requests",
+              "if (pm.response.code === 201) {",
+              "    const responseJson = pm.response.json();",
+              "    pm.collectionVariables.set('authToken', responseJson.data.token);",
+              "    pm.collectionVariables.set('userId', responseJson.data.id);",
+              "    console.log('✅ User registered successfully!');",
+              "    console.log('Token saved:', responseJson.data.token.substring(0, 20) + '...');",
+              "    console.log('User ID saved:', responseJson.data.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Login User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"usernameOrEmail\": \"testuser\",\n    \"password\": \"testpassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "Login with existing user credentials"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('token');",
+              "});",
+              "",
+              "// Save the auth token for use in other requests",
+              "if (pm.response.code === 200) {",
+              "    const responseJson = pm.response.json();",
+              "    pm.collectionVariables.set('authToken', responseJson.data.token);",
+              "    pm.collectionVariables.set('userId', responseJson.data.id);",
+              "    console.log('✅ User logged in successfully!');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Get User Habits",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/habits",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits"]
+        },
+        "description": "Get all habits for the authenticated user"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.be.an('array');",
+              "});",
+              "",
+              "console.log('✅ Habits retrieved successfully!');",
+              "console.log('Number of habits:', pm.response.json().data.length);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Create Habit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Morning Exercise\",\n    \"description\": \"30 minutes of cardio exercise every morning\",\n    \"frequencyType\": \"DAILY\",\n    \"targetCount\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/habits",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits"]
+        },
+        "description": "Create a new habit for the authenticated user"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('id');",
+              "    pm.expect(jsonData.data).to.have.property('name');",
+              "});",
+              "",
+              "// Save the habit ID for use in other requests",
+              "if (pm.response.code === 201) {",
+              "    const responseJson = pm.response.json();",
+              "    pm.collectionVariables.set('habitId', responseJson.data.id);",
+              "    console.log('✅ Habit created successfully!');",
+              "    console.log('Habit ID saved:', responseJson.data.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Get Habit by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/habits/{{habitId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits", "{{habitId}}"]
+        },
+        "description": "Get a specific habit by ID"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('id');",
+              "    pm.expect(jsonData.data).to.have.property('name');",
+              "});",
+              "",
+              "console.log('✅ Habit retrieved successfully!');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Update Habit",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Morning Exercise - Updated\",\n    \"description\": \"45 minutes of cardio exercise every morning\",\n    \"frequencyType\": \"DAILY\",\n    \"targetCount\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/habits/{{habitId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits", "{{habitId}}"]
+        },
+        "description": "Update an existing habit"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('name');",
+              "});",
+              "",
+              "console.log('✅ Habit updated successfully!');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Create Habit Entry",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"entryDate\": \"2024-07-17\",\n    \"completionCount\": 1,\n    \"isCompleted\": true,\n    \"notes\": \"Great workout today! Felt energized.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/habits/{{habitId}}/entries",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits", "{{habitId}}", "entries"]
+        },
+        "description": "Log a habit entry (completion) for a specific habit"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('id');",
+              "});",
+              "",
+              "// Save the entry ID for use in other requests",
+              "if (pm.response.code === 201) {",
+              "    const responseJson = pm.response.json();",
+              "    pm.collectionVariables.set('entryId', responseJson.data.id);",
+              "    console.log('✅ Habit entry created successfully!');",
+              "    console.log('Entry ID saved:', responseJson.data.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Get Habit Entries",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/habits/{{habitId}}/entries",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits", "{{habitId}}", "entries"]
+        },
+        "description": "Get all entries for a specific habit"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.be.an('array');",
+              "});",
+              "",
+              "console.log('✅ Habit entries retrieved successfully!');",
+              "console.log('Number of entries:', pm.response.json().data.length);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Get User Analytics",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/analytics",
+          "host": ["{{baseUrl}}"],
+          "path": ["analytics"]
+        },
+        "description": "Get analytics and statistics for the authenticated user"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.have.property('totalHabits');",
+              "    pm.expect(jsonData.data).to.have.property('activeHabits');",
+              "});",
+              "",
+              "console.log('✅ Analytics retrieved successfully!');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Search Habits",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/habits/search?name=exercise",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits", "search"],
+          "query": [
+            {
+              "key": "name",
+              "value": "exercise"
+            }
+          ]
+        },
+        "description": "Search for habits by name"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "    pm.expect(jsonData).to.have.property('data');",
+              "    pm.expect(jsonData.data).to.be.an('array');",
+              "});",
+              "",
+              "console.log('✅ Habit search completed successfully!');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Delete Habit Entry",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/habits/{{habitId}}/entries/{{entryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits", "{{habitId}}", "entries", "{{entryId}}"]
+        },
+        "description": "Delete a specific habit entry"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "});",
+              "",
+              "console.log('✅ Habit entry deleted successfully!');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. Delete Habit",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/habits/{{habitId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["habits", "{{habitId}}"]
+        },
+        "description": "Delete a specific habit (soft delete - sets isActive to false)"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has correct structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('success', true);",
+              "});",
+              "",
+              "console.log('✅ Habit deleted successfully!');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
